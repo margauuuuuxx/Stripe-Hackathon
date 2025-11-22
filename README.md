@@ -10,15 +10,15 @@ An AI-powered subscription management system that helps users set up automatic p
 - **Real-time Chat Interface**: Stream responses with Stripe MCP tool integration
 - **Stripe Integration**: Search and manage real Stripe products and subscriptions
 
-  ### Possible Future Features
+### Possible Future Features
   
-  - Calendar integration to anticipate gift purchases (birthdays, Christmas, trips, etc.) + verification of which third-party sites Stripe can access.
-  - Automatic purchasing when a product’s price drops below a defined threshold.
-  - Chatbot assistance providing information about when and how an order will be delivered.
-  - Automatic delivery scheduling or rescheduling based on the user’s calendar.
-  - Automatic fetching of promo codes or offers for products the user already buys (feature can be enabled or disabled).
-  - Smart recommendations based on user activity on social networks.
-  - Shared shopping cart across multiple Stripe-compatible sellers.
+- Calendar integration to anticipate gift purchases (birthdays, Christmas, trips, etc.) + verification of which third-party sites Stripe can access.
+- Automatic purchasing when a product’s price drops below a defined threshold.
+- Chatbot assistance providing information about when and how an order will be delivered.
+- Automatic delivery scheduling or rescheduling based on the user’s calendar.
+- Automatic fetching of promo codes or offers for products the user already buys (feature can be enabled or disabled).
+- Smart recommendations based on user activity on social networks.
+- Shared shopping cart across multiple Stripe-compatible sellers.
 
 ## 🏗️ Architecture
 
