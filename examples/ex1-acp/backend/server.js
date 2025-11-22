@@ -34,7 +34,7 @@ const { callStripeMCPTool } = require('./lib/mcp/stripe-mcp');
 const DAT1_API_URL = 'https://api.dat1.co/api/v1/collection/gpt-120-oss/invoke-chat';
 const DEFAULT_TEMPERATURE = 0.7;
 const DEFAULT_MAX_TOKENS = 5000;
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 // ============================================================================
 // SERVER SETUP

@@ -29,7 +29,7 @@
     {
       "label": "Start Frontend",
       "type": "shell",
-      "command": "cd frontend && python3 -m http.server 8000",
+      "command": "cd frontend && python3 -m http.server 8001",
       "options": {
         "cwd": "${workspaceFolder}"
       },
