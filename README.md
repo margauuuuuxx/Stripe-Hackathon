@@ -10,6 +10,16 @@ An AI-powered subscription management system that helps users set up automatic p
 - **Real-time Chat Interface**: Stream responses with Stripe MCP tool integration
 - **Stripe Integration**: Search and manage real Stripe products and subscriptions
 
+  ### Possible Future Features
+  
+  - Calendar integration to anticipate gift purchases (birthdays, Christmas, trips, etc.) + verification of which third-party sites Stripe can access.
+  - Automatic purchasing when a product’s price drops below a defined threshold.
+  - Chatbot assistance providing information about when and how an order will be delivered.
+  - Automatic delivery scheduling or rescheduling based on the user’s calendar.
+  - Automatic fetching of promo codes or offers for products the user already buys (feature can be enabled or disabled).
+  - Smart recommendations based on user activity on social networks.
+  - Shared shopping cart across multiple Stripe-compatible sellers.
+
 ## 🏗️ Architecture
 
 The application consists of two main components:
@@ -185,42 +195,3 @@ stripe-hackathon/
 - **DAT1 API**: AI-powered natural language processing
 - **Stripe MCP**: Model Context Protocol for tool integration
 - **Server-Sent Events (SSE)**: Real-time streaming responses
-
-### Environment Variables
-
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `DAT1_API_KEY` | API key for DAT1 AI services | Yes |
-| `STRIPE_SECRET_KEY` | Stripe secret key for API access | Yes |
-| `PORT` | Server port (default: 3000) | No |
-
-## 🔐 Security Notes
-
-- Never commit `.env` files with real credentials
-- Keep your Stripe secret key secure
-- Use environment variables for all sensitive data
-- In production, use HTTPS and secure token storage
-
-## 📝 License
-
-MIT
-
-## 🤝 Contributing
-
-Contributions are welcome! Please follow standard Git workflow:
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
-
-## 💡 Future Enhancements
-
-- User authentication and account management
-- Payment method integration
-- Order history and tracking
-- Email notifications for upcoming charges
-- Advanced product filtering and search
-- Multi-currency support
-- Subscription management dashboard
