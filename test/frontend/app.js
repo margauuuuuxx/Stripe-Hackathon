@@ -6,7 +6,9 @@ const state = {
     messages: [],
     currentProduct: null,
     currentFrequency: null,
-    currentFlow: 'input' // 'input', 'confirming', 'frequency', 'overview'
+    currentFlow: 'input', // 'input', 'confirming', 'frequency', 'overview'
+    selectedProducts: [], // Multiple products for subscription
+    subscriptions: [] // All user subscriptions
 };
 
 // DOM Elements
@@ -32,8 +34,13 @@ document.getElementById('confirmNo').addEventListener('click', () => handleProdu
 document.querySelectorAll('.frequency-btn').forEach(btn => {
     btn.addEventListener('click', (e) => handleFrequencySelection(e.target.dataset.frequency));
 });
+document.getElementById('addAnotherProduct').addEventListener('click', handleAddAnotherProduct);
 document.getElementById('confirmSubscription').addEventListener('click', handleSubscriptionConfirmation);
 document.getElementById('cancelSubscription').addEventListener('click', handleSubscriptionCancel);
+
+// Sidebar event listeners
+document.getElementById('toggleSidebar').addEventListener('click', toggleSidebar);
+document.getElementById('openSidebar').addEventListener('click', openSidebar);
 
 // Initialize chat
 window.addEventListener('load', () => {
@@ -97,14 +104,26 @@ async function searchProduct(query, typingId) {
 
 function showProductConfirmation(product) {
     const detailsDiv = document.getElementById('productDetails');
+    const retailerInfo = product.retailer || 'Online Store';
+    const productUrl = product.productUrl || '#';
+    
     detailsDiv.innerHTML = `
         <div class="product-card">
-            <img src="${product.image || 'https://via.placeholder.com/200'}" alt="${product.name}" class="product-image">
+            <img src="${product.image || 'https://via.placeholder.com/400x400/667eea/ffffff?text=Product'}" 
+                 alt="${product.name}" 
+                 class="product-image"
+                 onerror="this.src='https://via.placeholder.com/400x400/667eea/ffffff?text=Product'">
             <div class="product-info">
                 <h3>${product.name}</h3>
                 <p class="product-brand">${product.brand || 'Unknown Brand'}</p>
                 <p class="product-description">${product.description || 'No description available'}</p>
                 <p class="product-price">$${product.price ? product.price.toFixed(2) : '0.00'}</p>
+                <div class="product-source">
+                    <p class="retailer-info">
+                        📦 Will be purchased from: <strong>${retailerInfo}</strong>
+                    </p>
+                    ${productUrl !== '#' ? `<a href="${productUrl}" target="_blank" class="product-link">View Product Page →</a>` : ''}
+                </div>
             </div>
         </div>
     `;
@@ -115,6 +134,8 @@ function handleProductConfirmation(confirmed) {
     productModal.style.display = 'none';
     
     if (confirmed) {
+        // Add to selected products
+        state.selectedProducts.push(state.currentProduct);
         addBotMessage(`✅ Great! You selected: **${state.currentProduct.name}**\n\nNow let's set up the purchase frequency.`);
         state.currentFlow = 'frequency';
         frequencyModal.style.display = 'flex';
@@ -161,15 +182,32 @@ function showSubscriptionOverview() {
     
     const nextDates = calculateNextDates(daysMap[state.currentFrequency], 3);
     
+    // Calculate total price for all selected products
+    const totalPrice = state.selectedProducts.reduce((sum, p) => sum + (p.price || 0), 0);
+    
     const detailsDiv = document.getElementById('overviewDetails');
+    
+    // Build products HTML
+    const productsHTML = state.selectedProducts.map(product => `
+        <div class="overview-product">
+            <img src="${product.image || 'https://via.placeholder.com/150'}" 
+                 alt="${product.name}" 
+                 class="overview-image"
+                 onerror="this.src='https://via.placeholder.com/150x150/667eea/ffffff?text=Product'">
+            <div class="overview-product-info">
+                <h3>${product.name}</h3>
+                <p class="brand">${product.brand || 'Unknown Brand'}</p>
+                <p class="retailer">From: ${product.retailer || 'Online Store'}</p>
+                <p class="price">$${product.price ? product.price.toFixed(2) : '0.00'}</p>
+            </div>
+        </div>
+    `).join('');
+    
     detailsDiv.innerHTML = `
         <div class="overview-card">
-            <div class="overview-product">
-                <img src="${state.currentProduct.image || 'https://via.placeholder.com/150'}" alt="${state.currentProduct.name}" class="overview-image">
-                <div>
-                    <h3>${state.currentProduct.name}</h3>
-                    <p>${state.currentProduct.brand || 'Unknown Brand'}</p>
-                </div>
+            <h3 class="overview-section-title">📦 Products (${state.selectedProducts.length})</h3>
+            <div class="overview-products-list">
+                ${productsHTML}
             </div>
             
             <div class="overview-details-section">
@@ -178,15 +216,15 @@ function showSubscriptionOverview() {
                     <span class="value">${frequencyText}</span>
                 </div>
                 <div class="overview-row">
-                    <span class="label">Price per order:</span>
-                    <span class="value">$${state.currentProduct.price ? state.currentProduct.price.toFixed(2) : '0.00'}</span>
+                    <span class="label">Total per order:</span>
+                    <span class="value total-price">$${totalPrice.toFixed(2)}</span>
                 </div>
             </div>
             
             <div class="schedule-section">
                 <h4>📅 Upcoming Orders:</h4>
                 <ul class="schedule-list">
-                    ${nextDates.map((date, i) => `<li>Order ${i + 1}: ${date}</li>`).join('')}
+                    ${nextDates.map((date, i) => `<li>Order ${i + 1}: ${date} - $${totalPrice.toFixed(2)}</li>`).join('')}
                 </ul>
             </div>
             
@@ -215,17 +253,30 @@ function calculateNextDates(intervalDays, count) {
     return dates;
 }
 
+function handleAddAnotherProduct() {
+    overviewModal.style.display = 'none';
+    addBotMessage(`✅ Current products added! Search for another product to add to this subscription.`);
+    
+    // Keep the frequency and selected products, reset product search
+    state.currentProduct = null;
+    state.currentFlow = 'input';
+    sendButton.disabled = false;
+    userInput.focus();
+}
+
 async function handleSubscriptionConfirmation() {
     overviewModal.style.display = 'none';
     
     const typingId = showTypingIndicator();
     
     try {
+        const totalPrice = state.selectedProducts.reduce((sum, p) => sum + (p.price || 0), 0);
+        
         const response = await fetch(`${API_BASE_URL}/api/create-subscription`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                product: state.currentProduct,
+                products: state.selectedProducts,
                 frequency: state.currentFrequency
             })
         });
@@ -234,7 +285,25 @@ async function handleSubscriptionConfirmation() {
         removeTypingIndicator(typingId);
         
         if (data.success) {
-            addBotMessage(`🎉 **Subscription Created Successfully!**\n\n✅ Your agentic payment has been set up for **${state.currentProduct.name}**\n\n📋 Subscription Details:\n• ID: ${data.subscriptionId}\n• Frequency: ${state.currentFrequency}\n• Next charge: ${data.nextCharge}\n\nYour product will be automatically ordered and charged according to your schedule!`);
+            // Add to subscriptions list
+            const subscription = {
+                id: data.subscriptionId,
+                products: state.selectedProducts,
+                frequency: state.currentFrequency,
+                totalPrice: totalPrice,
+                nextCharge: data.nextCharge,
+                createdAt: new Date().toISOString()
+            };
+            state.subscriptions.push(subscription);
+            
+            // Save to localStorage
+            saveSubscriptions();
+            
+            // Update dashboard
+            renderSubscriptions();
+            
+            const productNames = state.selectedProducts.map(p => p.name).join(', ');
+            addBotMessage(`🎉 **Subscription Created Successfully!**\n\n✅ Your agentic payment has been set up!\n\n📋 Subscription Details:\n• ID: ${data.subscriptionId}\n• Products: ${productNames}\n• Frequency: ${state.currentFrequency}\n• Total per order: $${totalPrice.toFixed(2)}\n• Next charge: ${data.nextCharge}\n\nYour products will be automatically ordered and charged according to your schedule!`);
         } else {
             addBotMessage(`❌ Failed to create subscription: ${data.error}`);
         }
@@ -247,6 +316,7 @@ async function handleSubscriptionConfirmation() {
     // Reset state
     state.currentProduct = null;
     state.currentFrequency = null;
+    state.selectedProducts = [];
     state.currentFlow = 'input';
     sendButton.disabled = false;
 }
@@ -257,9 +327,104 @@ function handleSubscriptionCancel() {
     
     state.currentProduct = null;
     state.currentFrequency = null;
+    state.selectedProducts = [];
     state.currentFlow = 'input';
     sendButton.disabled = false;
 }
+
+// Sidebar functions
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    sidebar.classList.toggle('collapsed');
+}
+
+function openSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    sidebar.classList.remove('collapsed');
+}
+
+// Subscription management
+function saveSubscriptions() {
+    localStorage.setItem('subscriptions', JSON.stringify(state.subscriptions));
+}
+
+function loadSubscriptions() {
+    const saved = localStorage.getItem('subscriptions');
+    if (saved) {
+        state.subscriptions = JSON.parse(saved);
+        renderSubscriptions();
+    }
+}
+
+function renderSubscriptions() {
+    const listDiv = document.getElementById('subscriptionsList');
+    
+    if (state.subscriptions.length === 0) {
+        listDiv.innerHTML = '<p class="empty-state">No subscriptions yet. Create your first one!</p>';
+        return;
+    }
+    
+    const frequencyLabels = {
+        'weekly': 'Weekly',
+        'biweekly': 'Bi-weekly',
+        'monthly': 'Monthly',
+        'quarterly': 'Quarterly'
+    };
+    
+    const html = state.subscriptions.map(sub => {
+        const productCount = sub.products.length;
+        const firstProduct = sub.products[0];
+        const moreText = productCount > 1 ? ` +${productCount - 1} more` : '';
+        
+        return `
+            <div class="subscription-item">
+                <div class="subscription-header">
+                    <span class="subscription-id">#${sub.id.substring(0, 8)}</span>
+                    <button class="delete-btn" onclick="deleteSubscription('${sub.id}')">✕</button>
+                </div>
+                <div class="subscription-body">
+                    <div class="subscription-product">
+                        <img src="${firstProduct.image}" alt="${firstProduct.name}" onerror="this.src='https://via.placeholder.com/50x50/667eea/ffffff?text=P'">
+                        <div>
+                            <p class="product-name">${firstProduct.name}${moreText}</p>
+                            <p class="product-brand">${firstProduct.brand}</p>
+                        </div>
+                    </div>
+                    <div class="subscription-details">
+                        <div class="detail-row">
+                            <span class="icon">💰</span>
+                            <span>$${sub.totalPrice.toFixed(2)}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="icon">📅</span>
+                            <span>${frequencyLabels[sub.frequency]}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="icon">⏰</span>
+                            <span>Next: ${sub.nextCharge}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    listDiv.innerHTML = html;
+}
+
+function deleteSubscription(subscriptionId) {
+    if (confirm('Are you sure you want to cancel this subscription?')) {
+        state.subscriptions = state.subscriptions.filter(sub => sub.id !== subscriptionId);
+        saveSubscriptions();
+        renderSubscriptions();
+        addBotMessage(`✅ Subscription #${subscriptionId.substring(0, 8)} has been cancelled.`);
+    }
+}
+
+// Load subscriptions on page load
+window.addEventListener('load', () => {
+    loadSubscriptions();
+});
 
 
 

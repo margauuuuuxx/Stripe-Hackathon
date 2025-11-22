@@ -203,12 +203,17 @@ app.post('/api/search-product', async (req, res) => {
  * Create a Stripe subscription for recurring product purchases
  */
 app.post('/api/create-subscription', async (req, res) => {
-    const { product, frequency } = req.body;
-    console.log(`[API] POST /api/create-subscription - product: ${product.name}, frequency: ${frequency}`);
+    const { products, product, frequency } = req.body;
+    
+    // Support both single product (legacy) and multiple products
+    const productList = products || (product ? [product] : []);
+    const productNames = productList.map(p => p.name).join(', ');
+    
+    console.log(`[API] POST /api/create-subscription - products: ${productNames}, frequency: ${frequency}`);
 
     try {
         // In a real implementation, this would create an actual Stripe subscription
-        const subscription = await createStripeSubscription(product, frequency);
+        const subscription = await createStripeSubscription(productList, frequency);
         
         console.log(`[API] Subscription created: ${subscription.id}`);
         res.json({
@@ -256,14 +261,18 @@ Response format (respond with ONLY this JSON, no other text):
     "brand": "Brand Name",
     "description": "Product description",
     "price": 29.99,
-    "image": "https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400"
+    "image": "https://via.placeholder.com/400x400/667eea/ffffff?text=Product",
+    "retailer": "Sephora",
+    "productUrl": "https://www.sephora.com/product/example"
 }
 
 Rules:
 1. Return ONLY valid JSON, no markdown, no code blocks, no explanation
 2. Use realistic prices in USD (typically $15-50 for cosmetics)
-3. Use Unsplash image URLs (https://images.unsplash.com/...)
-4. Keep descriptions under 150 characters`;
+3. For image, use placeholder: "https://via.placeholder.com/400x400/667eea/ffffff?text=ProductName"
+4. Keep descriptions under 150 characters
+5. Include realistic retailer (Sephora, Ulta, Amazon, brand website)
+6. Include product URL (use real retailer domains)`;
 
     const userPrompt = `Product query: "${query}"
 
@@ -347,7 +356,14 @@ Return JSON with name, brand, description, price, and image URL. JSON only:`;
     // Set defaults for missing fields
     productData.brand = productData.brand || 'Unknown Brand';
     productData.description = productData.description || 'High-quality product with excellent reviews.';
-    productData.image = productData.image || 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400&q=80';
+    productData.retailer = productData.retailer || 'Online Store';
+    productData.productUrl = productData.productUrl || '#';
+    
+    // Fix image - use placeholder if missing or invalid
+    if (!productData.image || productData.image.includes('unsplash')) {
+        const productName = encodeURIComponent(productData.name.substring(0, 20));
+        productData.image = `https://via.placeholder.com/400x400/667eea/ffffff?text=${productName}`;
+    }
 
     return productData;
 }
@@ -365,7 +381,9 @@ function simulateProductSearchFallback(query) {
             brand: 'Typology',
             description: 'A rich, nourishing cream that deeply hydrates and softens the skin. Formulated with natural ingredients for all skin types.',
             price: 24.99,
-            image: 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400&q=80'
+            image: 'https://via.placeholder.com/400x400/667eea/ffffff?text=Hydrating+Cream',
+            retailer: 'Sephora',
+            productUrl: 'https://www.sephora.com'
         };
     } else if (lowerQuery.includes('serum')) {
         return {
@@ -373,7 +391,9 @@ function simulateProductSearchFallback(query) {
             brand: 'The Ordinary',
             description: 'A potent antioxidant serum that brightens skin and reduces signs of aging. Contains 15% pure L-Ascorbic Acid.',
             price: 18.99,
-            image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=400&q=80'
+            image: 'https://via.placeholder.com/400x400/667eea/ffffff?text=Vitamin+C+Serum',
+            retailer: 'Ulta',
+            productUrl: 'https://www.ulta.com'
         };
     } else if (lowerQuery.includes('cleanser')) {
         return {
@@ -381,16 +401,21 @@ function simulateProductSearchFallback(query) {
             brand: 'CeraVe',
             description: 'A gentle, non-foaming cleanser that removes dirt and makeup without stripping the skin of its natural moisture.',
             price: 14.99,
-            image: 'https://images.unsplash.com/photo-1556228852-80f68f7c7b4e?w=400&q=80'
+            image: 'https://via.placeholder.com/400x400/667eea/ffffff?text=Face+Cleanser',
+            retailer: 'Amazon',
+            productUrl: 'https://www.amazon.com'
         };
     } else {
         // Default product
+        const productName = query.charAt(0).toUpperCase() + query.slice(1);
         return {
-            name: query.charAt(0).toUpperCase() + query.slice(1),
+            name: productName,
             brand: 'Premium Brand',
             description: `High-quality ${query} product with excellent reviews. Perfect for daily use.`,
             price: 29.99,
-            image: 'https://images.unsplash.com/photo-1556228578-dd6a8f7c7b4e?w=400&q=80'
+            image: `https://via.placeholder.com/400x400/667eea/ffffff?text=${encodeURIComponent(productName)}`,
+            retailer: 'Online Store',
+            productUrl: '#'
         };
     }
 }
@@ -398,7 +423,7 @@ function simulateProductSearchFallback(query) {
 /**
  * Creates a Stripe subscription (replace with actual Stripe API in production)
  */
-async function createStripeSubscription(product, frequency) {
+async function createStripeSubscription(products, frequency) {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 1000));
     
@@ -411,6 +436,9 @@ async function createStripeSubscription(product, frequency) {
     
     const intervalConfig = intervalMap[frequency] || intervalMap.monthly;
     
+    // Calculate total amount
+    const totalAmount = products.reduce((sum, product) => sum + (product.price || 0), 0);
+    
     // Calculate next charge date
     const nextChargeDate = new Date();
     const daysMap = { 'weekly': 7, 'biweekly': 14, 'monthly': 30, 'quarterly': 90 };
@@ -419,14 +447,14 @@ async function createStripeSubscription(product, frequency) {
     // In production, use actual Stripe API:
     // const subscription = await stripe.subscriptions.create({
     //   customer: customerId,
-    //   items: [{ price: priceId }],
+    //   items: products.map(p => ({ price: p.priceId })),
     //   ...intervalConfig
     // });
     
     return {
         id: `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        productName: product.name,
-        amount: product.price,
+        products: products.map(p => p.name),
+        amount: totalAmount,
         interval: intervalConfig.interval,
         intervalCount: intervalConfig.interval_count,
         nextCharge: nextChargeDate.toLocaleDateString('en-US', { 

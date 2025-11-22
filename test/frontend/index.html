@@ -8,25 +8,41 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
-    <div class="container">
-        <div class="chat-header">
-            <h1>Agentic Product Subscription</h1>
-            <p>Set up automatic product purchases with AI assistance</p>
+    <!-- Sidebar Dashboard -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h2>📋 My Subscriptions</h2>
+            <button id="toggleSidebar" class="toggle-btn">←</button>
         </div>
-        
-        <div class="chat-messages" id="chatMessages">
-            <!-- Messages will be added here dynamically -->
+        <div class="subscriptions-list" id="subscriptionsList">
+            <p class="empty-state">No subscriptions yet. Create your first one!</p>
         </div>
-        
-        <div class="chat-input-container">
-            <input 
-                type="text" 
-                id="userInput" 
-                class="chat-input" 
-                placeholder="Enter a product (e.g., 'hydrating cream from typology')..."
-                autocomplete="off"
-            >
-            <button id="sendButton" class="send-button">Search</button>
+    </div>
+
+    <div class="main-content">
+        <div class="container">
+            <div class="chat-header">
+                <button id="openSidebar" class="menu-btn">☰</button>
+                <div>
+                    <h1>Agentic Product Subscription</h1>
+                    <p>Set up automatic product purchases with AI assistance</p>
+                </div>
+            </div>
+            
+            <div class="chat-messages" id="chatMessages">
+                <!-- Messages will be added here dynamically -->
+            </div>
+            
+            <div class="chat-input-container">
+                <input 
+                    type="text" 
+                    id="userInput" 
+                    class="chat-input" 
+                    placeholder="Enter a product (e.g., 'hydrating cream from typology')..."
+                    autocomplete="off"
+                >
+                <button id="sendButton" class="send-button">Search</button>
+            </div>
         </div>
     </div>
 
@@ -60,13 +76,14 @@
 
     <!-- Overview Modal -->
     <div id="overviewModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content overview-modal-content">
             <h2>Subscription Overview</h2>
             <div id="overviewDetails" class="overview-details">
                 <!-- Overview details will be inserted here -->
             </div>
             <div class="modal-buttons">
-                <button id="confirmSubscription" class="btn-confirm">Confirm Subscription</button>
+                <button id="addAnotherProduct" class="btn-add-another">+ Add Another Product</button>
+                <button id="confirmSubscription" class="btn-confirm">Confirm & Pay</button>
                 <button id="cancelSubscription" class="btn-cancel">Cancel</button>
             </div>
         </div>
