@@ -21,7 +21,7 @@ Create [backend/.env](backend/.env):
 ```bash
 STRIPE_SECRET_KEY="sk_test_..."      # Stripe secret key
 DAT1_API_KEY="..."                   # DAT1 API key for LLM
-PORT=3000                            # Port for backend server (optional, defaults to 3000)
+PORT=3001                            # Port for backend server (optional, defaults to 3001)
 ```
 
 ## Quick Start
@@ -48,10 +48,10 @@ npm start
 ### 2. Frontend
 ```bash
 cd frontend
-python3 -m http.server 8000
+python3 -m http.server 8001
 ```
 
-Then open [http://localhost:8000](http://localhost:8000) in your browser
+Then open [http://localhost:8001](http://localhost:8001) in your browser
 
 ## Project Structure
 

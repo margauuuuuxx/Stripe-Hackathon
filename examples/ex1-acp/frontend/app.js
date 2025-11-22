@@ -1,5 +1,5 @@
 // Configuration
-const API_BASE_URL = 'http://localhost:3000';
+const API_BASE_URL = 'http://localhost:3001';
 
 // State management
 const state = {
@@ -145,7 +145,7 @@ async function processMessage(message, typingId) {
     } catch (error) {
         console.error('Chat error:', error);
         removeTypingIndicator(typingId);
-        addBotMessage("❌ Sorry, I'm having trouble connecting to the server. Make sure the backend is running on port 3000.");
+        addBotMessage("❌ Sorry, I'm having trouble connecting to the server. Make sure the backend is running on port 3001.");
     } finally {
         sendButton.disabled = false;
         userInput.focus();
