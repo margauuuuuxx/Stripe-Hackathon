@@ -38,7 +38,11 @@ document.getElementById('cancelSubscription').addEventListener('click', handleSu
 // Initialize chat
 window.addEventListener('load', () => {
     addBotMessage("👋 Welcome to Agentic Product Subscription!\n\n🛍️ I'll help you set up automatic product purchases.\n\nSimply enter a product name (e.g., 'hydrating cream from typology') and I'll find it for you!");
+    loadDashboard();
 });
+
+// Dashboard event listener
+document.getElementById('refreshDashboard').addEventListener('click', loadDashboard);
 
 // Message handling
 function handleSendMessage() {
@@ -235,6 +239,9 @@ async function handleSubscriptionConfirmation() {
         
         if (data.success) {
             addBotMessage(`🎉 **Subscription Created Successfully!**\n\n✅ Your agentic payment has been set up for **${state.currentProduct.name}**\n\n📋 Subscription Details:\n• ID: ${data.subscriptionId}\n• Frequency: ${state.currentFrequency}\n• Next charge: ${data.nextCharge}\n\nYour product will be automatically ordered and charged according to your schedule!`);
+            
+            // Refresh the dashboard to show the new subscription
+            loadDashboard();
         } else {
             addBotMessage(`❌ Failed to create subscription: ${data.error}`);
         }
@@ -363,5 +370,87 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// Dashboard Functions
+async function loadDashboard() {
+    const subscriptionsListEl = document.getElementById('subscriptionsList');
+    const totalSubscriptionsEl = document.getElementById('totalSubscriptions');
+    const monthlyTotalEl = document.getElementById('monthlyTotal');
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/subscriptions`);
+        const data = await response.json();
+        
+        if (!data.subscriptions || data.subscriptions.length === 0) {
+            subscriptionsListEl.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">📭</div>
+                    <div class="empty-state-text">No active subscriptions yet.<br>Create your first subscription to get started!</div>
+                </div>
+            `;
+            totalSubscriptionsEl.textContent = '0';
+            monthlyTotalEl.textContent = '$0';
+            return;
+        }
+        
+        // Update stats
+        totalSubscriptionsEl.textContent = data.subscriptions.length;
+        monthlyTotalEl.textContent = `$${data.monthlyTotal.toFixed(2)}`;
+        
+        // Render subscriptions
+        subscriptionsListEl.innerHTML = data.subscriptions.map(sub => renderSubscriptionItem(sub)).join('');
+        
+    } catch (error) {
+        console.error('Error loading dashboard:', error);
+        subscriptionsListEl.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">⚠️</div>
+                <div class="empty-state-text">Error loading subscriptions.<br>Please try again.</div>
+            </div>
+        `;
+    }
+}
+
+function renderSubscriptionItem(subscription) {
+    const statusClass = subscription.status === 'active' ? 'active' : 'inactive';
+    const frequencyDisplay = {
+        'weekly': 'Weekly',
+        'biweekly': 'Bi-weekly',
+        'monthly': 'Monthly',
+        'quarterly': 'Quarterly'
+    }[subscription.frequency] || subscription.frequency;
+    
+    return `
+        <div class="subscription-item">
+            <div class="subscription-product">
+                <img src="${subscription.product.image || 'https://via.placeholder.com/50'}" 
+                     alt="${subscription.product.name}" 
+                     class="subscription-image">
+                <div class="subscription-info">
+                    <h4>${subscription.product.name}</h4>
+                    <div class="subscription-brand">${subscription.product.brand || 'Unknown Brand'}</div>
+                </div>
+            </div>
+            <div class="subscription-details">
+                <div class="subscription-row">
+                    <span class="label">Status:</span>
+                    <span class="subscription-status ${statusClass}">${subscription.status}</span>
+                </div>
+                <div class="subscription-row">
+                    <span class="label">Frequency:</span>
+                    <span class="value">${frequencyDisplay}</span>
+                </div>
+                <div class="subscription-row">
+                    <span class="label">Price:</span>
+                    <span class="value">$${subscription.product.price.toFixed(2)}</span>
+                </div>
+                <div class="subscription-row next-charge">
+                    <span class="label">Next Charge:</span>
+                    <span class="value">${subscription.nextCharge}</span>
+                </div>
+            </div>
+        </div>
+    `;
 }
 

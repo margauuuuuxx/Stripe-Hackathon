@@ -8,25 +8,51 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
-    <div class="container">
-        <div class="chat-header">
-            <h1>Agentic Product Subscription</h1>
-            <p>Set up automatic product purchases with AI assistance</p>
-        </div>
-        
-        <div class="chat-messages" id="chatMessages">
-            <!-- Messages will be added here dynamically -->
-        </div>
-        
-        <div class="chat-input-container">
-            <input 
-                type="text" 
-                id="userInput" 
-                class="chat-input" 
-                placeholder="Enter a product (e.g., 'hydrating cream from typology')..."
-                autocomplete="off"
-            >
-            <button id="sendButton" class="send-button">Search</button>
+    <div class="app-layout">
+        <!-- Left Sidebar Dashboard -->
+        <aside class="dashboard-sidebar">
+            <div class="dashboard-header">
+                <h2>My Subscriptions</h2>
+                <button id="refreshDashboard" class="refresh-btn" title="Refresh">↻</button>
+            </div>
+            
+            <div class="dashboard-stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalSubscriptions">0</div>
+                    <div class="stat-label">Active Subscriptions</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="monthlyTotal">$0</div>
+                    <div class="stat-label">Monthly Total</div>
+                </div>
+            </div>
+            
+            <div class="subscriptions-list" id="subscriptionsList">
+                <!-- Subscriptions will be added here dynamically -->
+            </div>
+        </aside>
+
+        <!-- Main Chat Container -->
+        <div class="container">
+            <div class="chat-header">
+                <h1>Agentic Product Subscription</h1>
+                <p>Set up automatic product purchases with AI assistance</p>
+            </div>
+            
+            <div class="chat-messages" id="chatMessages">
+                <!-- Messages will be added here dynamically -->
+            </div>
+            
+            <div class="chat-input-container">
+                <input 
+                    type="text" 
+                    id="userInput" 
+                    class="chat-input" 
+                    placeholder="Enter a product (e.g., 'hydrating cream from typology')..."
+                    autocomplete="off"
+                >
+                <button id="sendButton" class="send-button">Search</button>
+            </div>
         </div>
     </div>
 
