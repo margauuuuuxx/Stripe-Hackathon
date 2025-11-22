@@ -93,10 +93,24 @@ stripe-agentic-payments-hackathon-mcp-demo/
 This app uses the dat1 predeployed gpt-oss-120b model at:
 `https://api.dat1.co/api/v1/collection/gpt-120-oss/invoke-chat`
 
-## Example Queries
+## 🚀 NEW: Real AI Product Search
 
-- "Check my Stripe balance"
-- "Create a customer named John Doe with email john@example.com"
-- "List my products"
-- "What's my account status?"
+This demo now includes **real AI-powered product search** using dat1 API!
+
+### Example Product Queries
+
+- "hydrating cream from typology"
+- "vitamin c serum the ordinary"
+- "CeraVe moisturizing cream"
+- "retinol serum"
+- Any skincare product you can think of!
+
+The AI will search and return:
+- Product name
+- Brand
+- Description
+- Realistic price
+- Product image
+
+**Note:** Product search takes 2-4 seconds for AI to process and return results.
 

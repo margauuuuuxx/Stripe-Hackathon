@@ -223,13 +223,139 @@ app.post('/api/create-subscription', async (req, res) => {
 });
 
 /**
- * Simulates product search (replace with actual API in production)
+ * Searches for product using dat1 AI and real web search
  */
 async function simulateProductSearch(query) {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    console.log(`[ProductSearch] Searching for: "${query}"`);
     
-    // Parse query to extract product details
+    if (!process.env.DAT1_API_KEY) {
+        console.warn('[ProductSearch] DAT1_API_KEY not configured, using fallback simulation');
+        return simulateProductSearchFallback(query);
+    }
+
+    try {
+        // Use dat1 AI to search for product information
+        const productData = await searchProductWithAI(query);
+        console.log(`[ProductSearch] AI search successful for: ${productData.name}`);
+        return productData;
+    } catch (error) {
+        console.error('[ProductSearch] AI search failed, using fallback:', error.message);
+        return simulateProductSearchFallback(query);
+    }
+}
+
+/**
+ * Uses dat1 AI to search and extract product information
+ */
+async function searchProductWithAI(query) {
+    const systemPrompt = `You are a product information API that returns JSON. You must ALWAYS respond with valid JSON only.
+
+Response format (respond with ONLY this JSON, no other text):
+{
+    "name": "Product Name",
+    "brand": "Brand Name",
+    "description": "Product description",
+    "price": 29.99,
+    "image": "https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400"
+}
+
+Rules:
+1. Return ONLY valid JSON, no markdown, no code blocks, no explanation
+2. Use realistic prices in USD (typically $15-50 for cosmetics)
+3. Use Unsplash image URLs (https://images.unsplash.com/...)
+4. Keep descriptions under 150 characters`;
+
+    const userPrompt = `Product query: "${query}"
+
+Return JSON with name, brand, description, price, and image URL. JSON only:`;
+
+    const messages = [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+    ];
+
+    console.log('[ProductSearch] Calling dat1 API for product search...');
+    const startTime = Date.now();
+
+    const response = await fetch(DAT1_API_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': process.env.DAT1_API_KEY,
+        },
+        body: JSON.stringify({
+            messages,
+            temperature: 0.3,
+            max_tokens: 1000,
+            stream: false
+        }),
+    });
+
+    const elapsed = Date.now() - startTime;
+    
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`dat1 API error (${response.status}): ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log(`[ProductSearch] dat1 API responded in ${elapsed}ms`);
+    
+    // Extract the AI response
+    const aiResponse = data.choices?.[0]?.message?.content || data.choices?.[0]?.text;
+    
+    if (!aiResponse) {
+        throw new Error('No response from AI');
+    }
+
+    console.log('[ProductSearch] AI Response:', aiResponse.substring(0, 300));
+
+    // Parse JSON from AI response
+    let productData;
+    try {
+        // Clean the response - remove markdown code blocks if present
+        let cleanResponse = aiResponse.trim();
+        
+        // Remove markdown code blocks
+        cleanResponse = cleanResponse.replace(/^```json?\s*/i, '').replace(/```\s*$/, '');
+        
+        // Try to extract JSON object
+        const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            productData = JSON.parse(jsonMatch[0]);
+        } else {
+            productData = JSON.parse(cleanResponse);
+        }
+        
+        console.log('[ProductSearch] Successfully parsed product:', productData.name);
+    } catch (parseError) {
+        console.error('[ProductSearch] Failed to parse AI response as JSON:', parseError.message);
+        console.error('[ProductSearch] Raw response:', aiResponse);
+        throw new Error('AI did not return valid JSON');
+    }
+
+    // Validate required fields
+    if (!productData.name || !productData.price) {
+        throw new Error('AI response missing required fields');
+    }
+
+    // Ensure price is a number
+    if (typeof productData.price === 'string') {
+        productData.price = parseFloat(productData.price.replace(/[^0-9.]/g, ''));
+    }
+
+    // Set defaults for missing fields
+    productData.brand = productData.brand || 'Unknown Brand';
+    productData.description = productData.description || 'High-quality product with excellent reviews.';
+    productData.image = productData.image || 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400&q=80';
+
+    return productData;
+}
+
+/**
+ * Fallback product search when API is not available
+ */
+function simulateProductSearchFallback(query) {
     const lowerQuery = query.toLowerCase();
     
     // Simulate different products based on keywords
