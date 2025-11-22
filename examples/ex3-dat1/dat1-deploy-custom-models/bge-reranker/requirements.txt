@@ -1,3 +1,0 @@
-fastapi
-FlagEmbedding
-torch
