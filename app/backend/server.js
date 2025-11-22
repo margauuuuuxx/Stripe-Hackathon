@@ -330,6 +330,9 @@ app.post('/api/create-subscription', async (req, res) => {
     }
 });
 
+// In-memory storage for subscriptions (for demo purposes)
+const subscriptionsStore = [];
+
 /**
  * Simulates real subscription creation (enhanced version)
  * In production, this would use actual Stripe API calls
@@ -340,6 +343,7 @@ async function simulateRealSubscriptionCreation(product, frequency, customerEmai
     
     const intervalMap = {
         'weekly': { interval: 'week', interval_count: 1 },
+        'biweekly': { interval: 'week', interval_count: 2 },
         'monthly': { interval: 'month', interval_count: 1 },
         'quarterly': { interval: 'month', interval_count: 3 },
         'yearly': { interval: 'year', interval_count: 1 },
@@ -363,11 +367,17 @@ async function simulateRealSubscriptionCreation(product, frequency, customerEmai
     const customerId = `cus_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const subscriptionId = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
-    return {
+    const subscription = {
         id: subscriptionId,
         customerId: customerId,
-        productName: product.name,
-        productId: product.stripe_id || product.id,
+        product: {
+            name: product.name,
+            brand: product.brand,
+            image: product.image,
+            price: product.price,
+            id: product.stripe_id || product.id
+        },
+        frequency: frequency,
         amount: product.price,
         currency: product.currency || 'usd',
         interval: intervalConfig.interval,
@@ -382,7 +392,54 @@ async function simulateRealSubscriptionCreation(product, frequency, customerEmai
         status: 'active',
         created: new Date().toISOString()
     };
+    
+    // Store subscription
+    subscriptionsStore.push(subscription);
+    
+    return subscription;
 }
+
+/**
+ * GET /api/subscriptions
+ * Get all user subscriptions
+ */
+app.get('/api/subscriptions', async (req, res) => {
+    console.log('[API] GET /api/subscriptions');
+    
+    try {
+        // Calculate monthly total (convert all to monthly equivalent)
+        let monthlyTotal = 0;
+        
+        subscriptionsStore.forEach(sub => {
+            if (sub.status !== 'active') return;
+            
+            const price = sub.amount || 0;
+            const intervalMultipliers = {
+                'weekly': 4.33, // Average weeks per month
+                'biweekly': 2.17,
+                'monthly': 1,
+                'quarterly': 0.33,
+                'yearly': 0.083
+            };
+            
+            const multiplier = intervalMultipliers[sub.frequency] || 1;
+            monthlyTotal += price * multiplier;
+        });
+        
+        res.json({
+            subscriptions: subscriptionsStore,
+            monthlyTotal: monthlyTotal,
+            total: subscriptionsStore.length
+        });
+    } catch (error) {
+        console.error('[API] Error fetching subscriptions:', error);
+        res.status(500).json({ 
+            error: error.message,
+            subscriptions: [],
+            monthlyTotal: 0
+        });
+    }
+});
 
 /**
  * POST /api/chat-stream
