@@ -262,21 +262,31 @@ Response format (respond with ONLY this JSON, no other text):
     "description": "Product description",
     "price": 29.99,
     "image": "https://via.placeholder.com/400x400/667eea/ffffff?text=Product",
-    "retailer": "Sephora",
-    "productUrl": "https://www.sephora.com/product/example"
+    "retailer": "Retailer Name",
+    "productUrl": "https://www.retailer.com/product/example"
 }
 
 Rules:
 1. Return ONLY valid JSON, no markdown, no code blocks, no explanation
-2. Use realistic prices in USD (typically $15-50 for cosmetics)
+2. Use realistic market prices in USD (research actual prices for the product type)
 3. For image, use placeholder: "https://via.placeholder.com/400x400/667eea/ffffff?text=ProductName"
 4. Keep descriptions under 150 characters
-5. Include realistic retailer (Sephora, Ulta, Amazon, brand website)
-6. Include product URL (use real retailer domains)`;
+5. Include realistic retailer based on product type:
+   - Groceries/Food → Carrefour, Walmart, Target, Amazon
+   - Electronics → Amazon, Best Buy, Newegg, manufacturer site
+   - Cosmetics → Sephora, Ulta, Douglas
+   - General items → Amazon, Walmart, Target
+6. Include product URL using real retailer domains
+7. Match the specific retailer if mentioned in the query (e.g., "from Carrefour" → use Carrefour)
+8. For international products, use appropriate local retailers`;
 
     const userPrompt = `Product query: "${query}"
 
-Return JSON with name, brand, description, price, and image URL. JSON only:`;
+Find accurate information about this product. If a specific retailer is mentioned (like Carrefour, Walmart, etc.), use that retailer.
+If it's a technical product (like Raspberry Pi), include the model/version.
+Use realistic current market prices.
+
+Return JSON with name, brand, description, price, retailer, and productUrl. JSON only:`;
 
     const messages = [
         { role: 'system', content: systemPrompt },
@@ -374,12 +384,57 @@ Return JSON with name, brand, description, price, and image URL. JSON only:`;
 function simulateProductSearchFallback(query) {
     const lowerQuery = query.toLowerCase();
     
-    // Simulate different products based on keywords
-    if (lowerQuery.includes('cream') || lowerQuery.includes('moisturizer') || lowerQuery.includes('hydrat')) {
+    // Detect retailer from query
+    let retailer = 'Amazon';
+    let productUrl = 'https://www.amazon.com';
+    
+    if (lowerQuery.includes('carrefour')) {
+        retailer = 'Carrefour';
+        productUrl = 'https://www.carrefour.com';
+    } else if (lowerQuery.includes('walmart')) {
+        retailer = 'Walmart';
+        productUrl = 'https://www.walmart.com';
+    } else if (lowerQuery.includes('target')) {
+        retailer = 'Target';
+        productUrl = 'https://www.target.com';
+    }
+    
+    // Product-specific fallbacks
+    if (lowerQuery.includes('toilet paper')) {
+        return {
+            name: 'Soft Toilet Paper 12-Pack',
+            brand: retailer === 'Carrefour' ? 'Carrefour' : 'Charmin',
+            description: 'Soft, strong, and absorbent toilet paper. 12 rolls per pack.',
+            price: 8.99,
+            image: 'https://via.placeholder.com/400x400/667eea/ffffff?text=Toilet+Paper',
+            retailer: retailer,
+            productUrl: productUrl
+        };
+    } else if (lowerQuery.includes('raspberry pi')) {
+        return {
+            name: 'Raspberry Pi 4 Model B (4GB)',
+            brand: 'Raspberry Pi Foundation',
+            description: 'Single-board computer with 4GB RAM, quad-core processor, dual HDMI outputs.',
+            price: 55.00,
+            image: 'https://via.placeholder.com/400x400/667eea/ffffff?text=Raspberry+Pi',
+            retailer: 'Amazon',
+            productUrl: 'https://www.amazon.com'
+        };
+    } else if (lowerQuery.includes('salt')) {
+        return {
+            name: 'Sea Salt 1kg',
+            brand: retailer === 'Carrefour' ? 'Carrefour' : 'Morton',
+            description: 'Pure sea salt for cooking and seasoning. Natural and unrefined.',
+            price: 2.49,
+            image: 'https://via.placeholder.com/400x400/667eea/ffffff?text=Sea+Salt',
+            retailer: retailer,
+            productUrl: productUrl
+        };
+    } else if (lowerQuery.includes('cream') || lowerQuery.includes('moisturizer') || lowerQuery.includes('hydrat')) {
         return {
             name: 'Hydrating Cream',
             brand: 'Typology',
-            description: 'A rich, nourishing cream that deeply hydrates and softens the skin. Formulated with natural ingredients for all skin types.',
+            description: 'A rich, nourishing cream that deeply hydrates and softens the skin.',
             price: 24.99,
             image: 'https://via.placeholder.com/400x400/667eea/ffffff?text=Hydrating+Cream',
             retailer: 'Sephora',
@@ -389,33 +444,23 @@ function simulateProductSearchFallback(query) {
         return {
             name: 'Vitamin C Serum',
             brand: 'The Ordinary',
-            description: 'A potent antioxidant serum that brightens skin and reduces signs of aging. Contains 15% pure L-Ascorbic Acid.',
+            description: 'Potent antioxidant serum that brightens skin and reduces signs of aging.',
             price: 18.99,
             image: 'https://via.placeholder.com/400x400/667eea/ffffff?text=Vitamin+C+Serum',
             retailer: 'Ulta',
             productUrl: 'https://www.ulta.com'
-        };
-    } else if (lowerQuery.includes('cleanser')) {
-        return {
-            name: 'Gentle Face Cleanser',
-            brand: 'CeraVe',
-            description: 'A gentle, non-foaming cleanser that removes dirt and makeup without stripping the skin of its natural moisture.',
-            price: 14.99,
-            image: 'https://via.placeholder.com/400x400/667eea/ffffff?text=Face+Cleanser',
-            retailer: 'Amazon',
-            productUrl: 'https://www.amazon.com'
         };
     } else {
         // Default product
         const productName = query.charAt(0).toUpperCase() + query.slice(1);
         return {
             name: productName,
-            brand: 'Premium Brand',
-            description: `High-quality ${query} product with excellent reviews. Perfect for daily use.`,
-            price: 29.99,
-            image: `https://via.placeholder.com/400x400/667eea/ffffff?text=${encodeURIComponent(productName)}`,
-            retailer: 'Online Store',
-            productUrl: '#'
+            brand: retailer === 'Carrefour' ? 'Carrefour' : 'Generic',
+            description: `Quality ${query.toLowerCase()} product.`,
+            price: 19.99,
+            image: `https://via.placeholder.com/400x400/667eea/ffffff?text=${encodeURIComponent(productName.substring(0, 30))}`,
+            retailer: retailer,
+            productUrl: productUrl
         };
     }
 }
